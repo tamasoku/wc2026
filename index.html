@@ -1,0 +1,1103 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ワールドカップ ドラフト スコアボード（閲覧用）</title>
+<style>
+  :root{
+    --bg0:#070d1f; --bg1:#0b1530; --bg2:#0f1d3f;
+    --pitch:#0c2a1e;
+    --card:rgba(255,255,255,.045);
+    --card-line:rgba(255,255,255,.10);
+    --ink:#eaf0ff; --mut:#90a3cb; --mut2:#5d6f97;
+    --gold:#ffd24a; --gold-deep:#caa01f;
+    --A:#ff5a5f; --B:#4d96ff; --C:#34d399; --D:#ffb020;
+    --good:#3ddc84; --bad:#ff6b6b;
+    --jp:'Hiragino Kaku Gothic ProN','Hiragino Sans','Yu Gothic','Noto Sans JP','Meiryo',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:var(--jp); color:var(--ink);
+    background:
+      radial-gradient(1200px 700px at 50% -10%, rgba(77,150,255,.18), transparent 60%),
+      radial-gradient(900px 600px at 90% 10%, rgba(255,90,95,.10), transparent 60%),
+      linear-gradient(180deg,var(--bg1),var(--bg0) 70%);
+    min-height:100vh; -webkit-text-size-adjust:100%;
+  }
+  /* faint pitch lines */
+  body::before{
+    content:""; position:fixed; inset:0; pointer-events:none; opacity:.05;
+    background:repeating-linear-gradient(90deg, transparent 0 78px, #cfe3ff 78px 80px);
+    mask:linear-gradient(180deg, transparent, #000 30%, #000 75%, transparent);
+  }
+  .wrap{max-width:760px; margin:0 auto; padding:18px 14px 70px; position:relative; z-index:1}
+
+  header.top{display:flex; align-items:center; gap:12px; margin:6px 2px 16px}
+  .badge{
+    width:46px;height:46px;border-radius:13px;display:grid;place-items:center;font-size:24px;
+    background:linear-gradient(160deg,#16224a,#0c1430); border:1px solid var(--card-line);
+    box-shadow:0 8px 26px rgba(0,0,0,.4);
+  }
+  .titles h1{margin:0;font-size:clamp(17px,4.6vw,22px);letter-spacing:.02em;font-weight:800}
+  .titles p{margin:2px 0 0;font-size:12px;color:var(--mut)}
+
+  .syncbar{display:flex;align-items:center;gap:8px;margin-left:auto;font-size:11px;color:var(--mut)}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--mut2)}
+  .dot.live{background:var(--good);box-shadow:0 0 0 0 rgba(61,220,132,.6);animation:pp 2.4s infinite}
+  @keyframes pp{0%{box-shadow:0 0 0 0 rgba(61,220,132,.5)}70%{box-shadow:0 0 0 7px rgba(61,220,132,0)}100%{box-shadow:0 0 0 0 rgba(61,220,132,0)}}
+  .ghostbtn{background:transparent;border:1px solid var(--card-line);color:var(--mut);border-radius:9px;padding:5px 9px;font:inherit;font-size:11px;cursor:pointer}
+  .ghostbtn:hover{color:var(--ink);border-color:#3a4a78}
+
+  /* ---------- LEADERBOARD ---------- */
+  .board{display:flex;flex-direction:column;gap:10px;position:relative}
+  .row{
+    position:relative; display:grid; grid-template-columns:44px 1fr auto; align-items:center; gap:12px;
+    padding:13px 14px; border-radius:16px;
+    background:linear-gradient(180deg,var(--card),rgba(255,255,255,.02));
+    border:1px solid var(--card-line); will-change:transform;
+    box-shadow:0 10px 30px rgba(0,0,0,.28);
+    overflow:hidden;
+  }
+  .row::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--pc)}
+  .row.leader{border-color:rgba(255,210,74,.55);box-shadow:0 0 0 1px rgba(255,210,74,.25),0 14px 40px rgba(255,180,40,.16)}
+  .rankwrap{display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+  .rank{font-size:24px;font-weight:900;font-variant-numeric:tabular-nums}
+  .rankd{font-size:10px;color:var(--mut);margin-top:2px;height:12px}
+  .rankd.up{color:var(--good)} .rankd.down{color:var(--bad)}
+  .who{min-width:0}
+  .crown{font-size:14px;filter:drop-shadow(0 1px 3px rgba(255,200,60,.6))}
+  .name{font-weight:800;font-size:16px;display:flex;align-items:center;gap:7px}
+  .pid{font-size:10px;color:#0a1024;background:var(--pc);border-radius:5px;padding:1px 6px;font-weight:900}
+  .teams{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px}
+  .chip{font-size:11px;padding:2px 7px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid var(--card-line);color:var(--mut);white-space:nowrap}
+  .chip.alive{color:var(--ink);border-color:rgba(255,255,255,.22)}
+  .chip.gone{opacity:.38;text-decoration:line-through}
+  .chip .pt{color:var(--pc);font-weight:800;margin-left:3px}
+  .scorewrap{text-align:right;min-width:96px}
+  .total{font-size:32px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1;letter-spacing:-.01em}
+  .total small{font-size:12px;color:var(--mut);font-weight:700;margin-left:2px}
+  .split{font-size:11px;color:var(--mut);margin-top:4px;font-variant-numeric:tabular-nums}
+  .split b{color:var(--ink);font-weight:700}
+  .bar{grid-column:1/-1;height:6px;border-radius:999px;background:rgba(255,255,255,.06);overflow:hidden;margin-top:11px}
+  .bar > i{display:block;height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,var(--pc),#fff6);transition:width .7s cubic-bezier(.2,.8,.2,1)}
+
+  .emptyhint{text-align:center;color:var(--mut);font-size:13px;padding:14px;border:1px dashed var(--card-line);border-radius:14px;margin-top:8px}
+
+  /* champion banner */
+  .champ{display:none;align-items:center;gap:10px;margin:14px 0 2px;padding:12px 14px;border-radius:14px;
+    background:linear-gradient(120deg,rgba(255,210,74,.16),rgba(255,210,74,.04));border:1px solid rgba(255,210,74,.5)}
+  .champ.show{display:flex}
+  .champ .t{font-size:13px;color:var(--gold);font-weight:800}
+  .champ .b{font-size:15px;font-weight:900}
+
+  /* ---------- tabs ---------- */
+  .tabs{display:flex;gap:6px;margin:26px 0 14px;background:rgba(255,255,255,.03);padding:5px;border-radius:13px;border:1px solid var(--card-line)}
+  .tab{flex:1;text-align:center;padding:9px 3px;border-radius:9px;font-size:12px;font-weight:700;color:var(--mut);cursor:pointer;border:0;background:transparent;font-family:inherit;white-space:nowrap}
+  .tab.on{background:linear-gradient(180deg,#1b2a55,#142146);color:var(--ink);box-shadow:0 4px 14px rgba(0,0,0,.3)}
+  .panel{display:none} .panel.on{display:block;animation:fade .35s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  /* ---------- round input ---------- */
+  .pgroup{margin-bottom:16px;border:1px solid var(--card-line);border-radius:15px;overflow:hidden;background:var(--card)}
+  .phead{display:flex;align-items:center;gap:9px;padding:11px 13px;background:linear-gradient(180deg,rgba(255,255,255,.05),transparent)}
+  .phead .pid{font-size:11px}
+  .phead .pn{font-weight:800;font-size:14px}
+  .phead .pt{margin-left:auto;font-weight:900;color:var(--pc);font-variant-numeric:tabular-nums}
+  .trow{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;padding:9px 13px;border-top:1px solid rgba(255,255,255,.05)}
+  .tname{display:flex;align-items:center;gap:8px;font-size:14px;min-width:0}
+  .tname .fl{font-size:18px}
+  .tname .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tname .e{font-size:12px;font-weight:800;color:var(--pc);font-variant-numeric:tabular-nums}
+  select,input[type=text],input[type=number]{
+    font-family:inherit;font-size:13px;color:var(--ink);background:#0c1530;border:1px solid var(--card-line);
+    border-radius:9px;padding:7px 9px;outline:none;max-width:100%;
+  }
+  select{min-width:118px}
+  select:focus,input:focus{border-color:#4d6bb0;box-shadow:0 0 0 3px rgba(77,150,255,.15)}
+  select.champ-sel{border-color:var(--gold);color:var(--gold)}
+
+  /* ---------- bonus ---------- */
+  .card{border:1px solid var(--card-line);border-radius:15px;background:var(--card);padding:14px;margin-bottom:14px}
+  .card h3{margin:0 0 4px;font-size:14px}
+  .card .sub{font-size:12px;color:var(--mut);margin:0 0 12px}
+  .frow{display:grid;grid-template-columns:120px 1fr;align-items:center;gap:10px;margin-bottom:9px}
+  .frow label{font-size:13px;color:var(--mut)}
+  .frow input,.frow select{width:100%}
+  .pred{border:1px solid var(--card-line);border-radius:14px;background:var(--card);overflow:hidden;margin-bottom:12px}
+  .pred .ph{display:flex;align-items:center;gap:9px;padding:10px 13px;background:linear-gradient(180deg,rgba(255,255,255,.05),transparent)}
+  .pred .ph .bt{margin-left:auto;font-weight:900;color:var(--pc);font-variant-numeric:tabular-nums}
+  .pbody{padding:4px 13px 12px}
+  .pline{display:grid;grid-template-columns:84px 1fr 44px;align-items:center;gap:8px;padding:7px 0;border-top:1px solid rgba(255,255,255,.05);font-size:13px}
+  .pline:first-child{border-top:0}
+  .pline .k{color:var(--mut);font-size:12px}
+  .pline .v{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .pline .pts{text-align:right;font-weight:800;font-variant-numeric:tabular-nums}
+  .mk{font-size:13px} .mk.ok{color:var(--good)} .mk.no{color:var(--mut2)}
+  .twoin{display:flex;gap:6px}.twoin input{flex:1;min-width:0}
+
+  footer{margin-top:26px;text-align:center;color:var(--mut2);font-size:11px;line-height:1.7}
+  footer .ghostbtn{margin:0 4px}
+  .legend{font-size:11px;color:var(--mut);margin:4px 0 0;line-height:1.7}
+
+  /* web fetch */
+  .fetchbox{display:flex;align-items:center;gap:9px;margin-bottom:6px;flex-wrap:wrap}
+  .fetchbtn{font-family:inherit;font-weight:800;font-size:13px;color:#08111f;background:linear-gradient(180deg,#ffe27a,var(--gold));border:0;border-radius:10px;padding:9px 13px;cursor:pointer;box-shadow:0 6px 18px rgba(255,200,60,.22)}
+  .fetchbtn:disabled{opacity:.55;cursor:default}
+  .beta{font-size:10px;font-weight:800;color:var(--gold);border:1px solid rgba(255,210,74,.5);border-radius:6px;padding:1px 6px}
+  .fetchstat{font-size:12px;color:var(--mut)} .fetchstat.err{color:var(--bad)} .fetchstat.ok{color:var(--good)}
+  .spin{display:inline-block;width:11px;height:11px;border:2px solid rgba(255,255,255,.25);border-top-color:var(--gold);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-1px;margin-right:5px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+
+  .overlay{position:fixed;inset:0;background:rgba(4,8,18,.66);display:none;align-items:flex-end;justify-content:center;z-index:80}
+  .overlay.show{display:flex}
+  .sheet{width:100%;max-width:760px;max-height:84vh;overflow:auto;background:linear-gradient(180deg,#11193c,#0b1226);border:1px solid var(--card-line);border-radius:18px 18px 0 0;padding:18px 16px 22px;box-shadow:0 -20px 60px rgba(0,0,0,.55);animation:sheetup .3s ease}
+  @keyframes sheetup{from{transform:translateY(34px);opacity:.3}to{transform:none;opacity:1}}
+  .sheet h3{margin:0 0 4px;font-size:16px}
+  .sheet .asof{font-size:12px;color:var(--mut);margin:0 0 10px;line-height:1.6}
+  .grp{font-size:11px;color:var(--mut2);font-weight:800;letter-spacing:.04em;margin:12px 0 2px}
+  .chk{display:flex;align-items:center;gap:11px;padding:10px 4px;border-top:1px solid rgba(255,255,255,.06);font-size:14px}
+  .chk input{width:19px;height:19px;accent-color:var(--gold);flex:none}
+  .chk .lab{flex:1;min-width:0}
+  .chk .arr{color:var(--mut);font-size:12px;white-space:nowrap}
+  .chk .to{font-weight:800;white-space:nowrap}
+  .sheet .acts{display:flex;gap:10px;margin-top:18px;position:sticky;bottom:0}
+  .sheet .acts button{flex:1;font-family:inherit;font-weight:800;font-size:14px;border-radius:11px;padding:12px;cursor:pointer;border:0}
+  .btn-apply{background:linear-gradient(180deg,#ffe27a,var(--gold));color:#08111f}
+  .btn-cancel{background:rgba(255,255,255,.06);color:var(--ink);border:1px solid var(--card-line)}
+  .sheet .empty{color:var(--mut);font-size:14px;padding:12px 2px;line-height:1.7}
+
+  #cf{position:fixed;inset:0;pointer-events:none;z-index:60}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+  @media (max-width:430px){
+    .row{grid-template-columns:38px 1fr auto;gap:9px;padding:12px}
+    .total{font-size:27px}
+    .frow{grid-template-columns:100px 1fr}
+    .pline{grid-template-columns:74px 1fr 40px}
+  }
+  .chipx{font-size:11px;padding:4px 9px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid var(--card-line);color:var(--mut)}
+  .fimg{width:20px;height:15px;border-radius:2px;vertical-align:-2px;box-shadow:0 0 0 1px rgba(255,255,255,.14);object-fit:cover}
+  .stx{display:block;font-size:11px;color:var(--mut2);margin-top:2px}
+  .gcard{border:1px solid var(--card-line);border-radius:15px;background:var(--card);overflow:hidden;margin-bottom:13px}
+  .ghead{display:flex;align-items:center;gap:8px;padding:10px 13px;background:linear-gradient(180deg,rgba(255,255,255,.05),transparent);font-weight:900;font-size:14px}
+  .gtab{width:100%;border-collapse:collapse;font-size:12px}
+  .gtab th{font-size:10px;color:var(--mut2);font-weight:700;text-align:right;padding:4px 7px;border-bottom:1px solid rgba(255,255,255,.07)}
+  .gtab th:first-child,.gtab th:nth-child(2){text-align:left}
+  .gtab td{padding:7px;border-bottom:1px solid rgba(255,255,255,.05);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .gtab td.tm{text-align:left;max-width:0;width:55%;overflow:hidden;text-overflow:ellipsis;white-space:normal}
+  .gtab tr.q12 td:first-child{box-shadow:inset 3px 0 0 var(--good)}
+  .gtab tr.q3 td:first-child{box-shadow:inset 3px 0 0 var(--gold)}
+  .gtab .ps{display:inline-block;width:17px;height:17px;border-radius:50%;background:rgba(255,255,255,.09);font-size:11px;line-height:17px;text-align:center;font-weight:800}
+  .gtab .own{font-size:9px;color:#0a1024;border-radius:4px;padding:1px 4px;font-weight:900;margin-left:4px;vertical-align:1px}
+  .gtab .pts{font-weight:900;color:var(--ink)}
+  .kowrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--card-line);border-radius:15px;background:var(--card);padding:12px}
+  .kocols{display:flex;gap:14px;min-width:max-content;align-items:stretch}
+  .kocol{display:flex;flex-direction:column;justify-content:space-around;gap:10px;width:215px}
+  .kohead{font-size:11px;font-weight:800;color:var(--mut);text-align:center;letter-spacing:.05em;margin-bottom:2px}
+  .kom{border:1px solid var(--card-line);border-radius:10px;overflow:hidden;background:rgba(255,255,255,.03)}
+  .kor{display:flex;align-items:center;gap:6px;padding:6px 8px;font-size:12px}
+  .kor:first-child{border-bottom:1px solid rgba(255,255,255,.06)}
+  .kor .knm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .kor.kw{background:rgba(61,220,132,.09)}
+  .kor.kw .knm{font-weight:800}
+  .kor .ksc{font-weight:900;min-width:16px;text-align:right;font-variant-numeric:tabular-nums}
+  .kor input.koi{width:42px;padding:4px;font-size:13px;text-align:center}
+  .kor select.kosel{flex:1;min-width:0;font-size:12px;padding:5px 6px}
+  .kopk{padding:4px 8px 7px;font-size:11px;color:var(--mut);display:flex;gap:6px;align-items:center;border-top:1px dashed rgba(255,255,255,.08)}
+  .kopk select{font-size:11px;padding:4px 6px}
+  .kochamp{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:1px solid rgba(255,210,74,.55);border-radius:12px;background:linear-gradient(160deg,rgba(255,210,74,.15),rgba(255,210,74,.03));padding:14px 10px;text-align:center}
+  .kochamp .kc1{font-size:11px;color:var(--gold);font-weight:800;letter-spacing:.1em}
+  .kochamp .kc2{font-size:15px;font-weight:900}
+  .gmt{padding:5px 13px 12px}
+  .gtime{font-size:11px;color:var(--mut2);text-align:center;margin-top:8px;font-variant-numeric:tabular-nums}
+  .gmr{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:7px;padding:5px 0;font-size:12px}
+  .gmr .h{text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .gmr .a{text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .gmr .sc{font-weight:900;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--ink)}
+  .gmr .sc.na{color:var(--mut2);font-weight:400}
+  .gmr input.gsc{width:42px;padding:5px 4px;font-size:13px;text-align:center}
+  .gainf{position:absolute;right:14px;top:6px;font-weight:900;font-size:16px;color:var(--good);animation:gf 1.6s ease forwards;pointer-events:none;z-index:5}
+  @keyframes gf{0%{opacity:0;transform:translateY(6px)}15%{opacity:1}100%{opacity:0;transform:translateY(-22px)}}
+</style>
+
+<canvas id="cf"></canvas>
+<div class="wrap">
+  <header class="top">
+    <div class="badge">🏆</div>
+    <div class="titles">
+      <h1>ドラフト ライブ・スコアボード</h1>
+      <p>WORLD CUP 2026 ／ 4人・各6チーム</p>
+    </div>
+    <div class="syncbar">
+      <span class="dot" id="syncDot"></span><span id="syncTxt">…</span>
+      <button class="ghostbtn" id="refreshBtn">最新を取得</button>
+    </div>
+  </header>
+
+  <div id="ownerBar" style="margin:0 2px 12px;padding:10px 12px;border:1px solid var(--card-line);border-radius:11px;background:rgba(255,255,255,.04);font-size:12px;color:var(--mut)">
+    <div>最新の結果を自動で表示します。見るだけの人はこのまま。</div>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:8px;cursor:pointer;color:var(--ink)">
+      <input type="checkbox" id="editToggle" style="width:18px;height:18px;accent-color:var(--gold)"> 編集モード（結果を更新する人だけON）
+    </label>
+    <div id="editHint" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.08);color:var(--ink)">
+      ① 下のタブで結果を入力　② ひとこと速報（任意・盤面の一番上に出ます）<br>
+      <input type="text" id="tickerMsg" placeholder="例：日本、PKを制してベスト8！" style="width:100%;margin-top:5px;margin-bottom:9px">
+      ③ <a class="fetchbtn" id="copyOpenGist" href="https://gist.github.com/tamasoku/7549666d5ade13e117f706dc669e7ae8" target="_blank" rel="noopener" style="display:inline-block;text-decoration:none;font-size:12px;padding:7px 11px">JSONをコピーしてGistを開く</a>
+      <span style="color:var(--mut)">→ 開いたページで「Edit」→ 中身を全選択して貼り付け →「Update gist」。終わったら編集モードをOFF。</span>
+    </div>
+  </div>
+  <div id="ticker" style="display:none;align-items:center;gap:8px;margin:0 2px 10px;padding:10px 12px;border:1px solid rgba(255,210,74,.5);border-radius:11px;background:linear-gradient(120deg,rgba(255,210,74,.14),rgba(255,210,74,.03));font-size:13px"><span>📣</span><b id="tickerText" style="font-weight:800"></b><span id="tickerTime" style="margin-left:auto;color:var(--mut);font-size:11px;white-space:nowrap"></span></div>
+  <div id="topStrip" style="display:flex;flex-wrap:wrap;gap:6px;margin:0 2px 12px"></div>
+  <div class="board" id="board"></div>
+  <div class="emptyhint" id="emptyHint">まだ結果なし。「グループ表」タブで試合スコアを入れると、順位・勝点が自動計算され、ここが勝点レースとして動き出します。</div>
+
+  <div class="champ" id="champBanner">
+    <div style="font-size:24px">🏆</div>
+    <div><div class="t">優勝</div><div class="b" id="champText"></div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" data-tab="groups">グループ表</button>
+    <button class="tab" data-tab="ko">トーナメント</button>
+    <button class="tab" data-tab="rounds">勝ち上がり</button>
+    <button class="tab" data-tab="bonus">ボーナス予想</button>
+    <button class="tab" data-tab="share">共有</button>
+  </div>
+
+  <section class="panel on" id="panel-groups">
+    <div id="groupsHost"></div>
+    <p class="legend">色付きの一文字は保有者（竹=竹田さん・丸=丸山くん・白=白井君・浜=浜津君）。各組 上位2か国（緑）＋ 成績上位の3位8か国（金）がベスト32へ。順位は 勝点 → 得失点差 → 総得点 の順で計算（実際の規定と細部が異なる場合があります）。🕘は日本時間のキックオフ。スコアは編集モードONで入力できます。</p>
+  </section>
+
+  <section class="panel" id="panel-ko">
+    <div id="koHost"></div>
+    <div class="fetchbox" style="margin-top:12px">
+      <button class="fetchbtn" id="koApply" style="display:none">トーナメントの結果を「勝ち上がり」に反映</button>
+    </div>
+    <p class="legend">左右にスワイプで全体を見られます。各試合の勝者は自動で右へ進出。同点のときはPK勝者を選んでください。チーム選択とスコア入力は編集モードONで（ベスト32の枠にチームを入れるところから始まります）。</p>
+  </section>
+
+  <section class="panel" id="panel-rounds">
+    <div id="roundsHost"></div>
+    <p class="legend">配点（累積）：ベスト32 = 1 ／ ベスト16 = 4 ／ ベスト8 = 10 ／ ベスト4 = 20 ／ 準優勝 = 35 ／ 優勝 = 60。各チームは「最も上まで到達したラウンド」を選びます。</p>
+  </section>
+
+  <section class="panel" id="panel-bonus">
+    <div class="card">
+      <h3>実際の結果を入力</h3>
+      <p class="sub">ここを埋めると、各自のボーナス予想が自動採点されます。ボーナスは合計最大30点。</p>
+      <div class="frow"><label>決勝の2チーム</label>
+        <div class="twoin">
+          <input type="text" id="aF1" list="teamlist" placeholder="チーム1">
+          <input type="text" id="aF2" list="teamlist" placeholder="チーム2">
+        </div>
+      </div>
+      <div class="frow"><label>得点王</label><input type="text" id="aScorer" placeholder="選手名"></div>
+      <div class="frow"><label>最多得点国</label><input type="text" id="aNation" list="teamlist" placeholder="国名"></div>
+      <div class="frow"><label>日本の到達R</label><span id="japanAuto" style="font-size:13px;color:var(--mut)"></span></div>
+    </div>
+    <div id="bonusHost"></div>
+    <p class="legend">採点：決勝カード 片方4／両方12（順不同）・得点王 8・日本の到達R 5・最多得点国 5。竹田さんの欄は未入力なので、各セルをタップして予想を入れられます。</p>
+  </section>
+
+  <section class="panel" id="panel-share">
+    <div class="card">
+      <h3>① あなた用：結果を入力したらコードを発行</h3>
+      <p class="sub">勝ち上がり・ボーナス結果を入力 → 下のボタンでコードを発行 → コピーしてLINEなどで3人に送ります。試合があるたびに新しいコードを送るだけ。</p>
+      <div class="fetchbox">
+        <button class="fetchbtn" id="genCodeBtn">共有コードを発行</button>
+        <button class="ghostbtn" id="copyCodeBtn">コピー</button>
+        <span class="fetchstat" id="codeGenStat"></span>
+      </div>
+      <textarea id="shareCode" readonly placeholder="ここに発行したコードが入ります" style="width:100%;height:74px;margin-top:8px;resize:vertical;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--ink);background:#0c1530;border:1px solid var(--card-line);border-radius:10px;padding:9px;word-break:break-all"></textarea>
+    </div>
+
+    <div class="card">
+      <h3>② 見る人用：受け取ったコードを貼って表示</h3>
+      <p class="sub">公開リンクを開いた状態で、送られてきたコードを貼り付けて「このコードで表示」を押すと、最新の盤面になります。新しいコードが来たら貼り替えるだけ。</p>
+      <textarea id="codeIn" placeholder="ここに共有コードを貼り付け" style="width:100%;height:74px;resize:vertical;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--ink);background:#0c1530;border:1px solid var(--card-line);border-radius:10px;padding:9px;word-break:break-all"></textarea>
+      <div class="fetchbox" style="margin-top:8px">
+        <button class="fetchbtn" id="loadCodeBtn">このコードで表示</button>
+        <span class="fetchstat" id="codeLoadStat"></span>
+      </div>
+    </div>
+    <p class="legend">公開リンク（アーティファクト右上の「公開」ボタンで作成）は最初に一度配れば十分。中身の更新はこのコードで届きます。アカウント不要・全プランで動きます。</p>
+
+    <div class="card" style="margin-top:14px">
+      <h3>③ 開くだけで自動最新（任意・おすすめ）</h3>
+      <p class="sub">コードを毎回送りたくない場合はこちら。無料のJSON置き場（npoint.io か GitHub Gist など）にデータを置き、そのURLを設定すると、3人は<b>リンクを開くだけ</b>で最新が表示されます（貼り付け不要）。</p>
+      <div class="frow"><label>JSONのURL</label><input type="text" id="remoteUrl" placeholder="https://api.npoint.io/… か gist.githubusercontent.com/…/raw/wc.json"></div>
+      <div class="fetchbox">
+        <button class="fetchbtn" id="applyRemoteBtn">このURLで自動表示</button>
+        <button class="ghostbtn" id="copyJsonBtn">置き場用JSONをコピー</button>
+        <span class="fetchstat" id="remoteStat"></span>
+      </div>
+      <p class="legend" style="margin-top:8px">手順：(1) 「置き場用JSONをコピー」→ npoint.io か GitHub Gist に貼って保存し、公開URLを取得 (2) そのURLを上に入れて「自動表示」で動作確認（Gistは「Raw」のURLをそのまま貼ればOK。最新固定に自動変換します） (3) このURLを私に教えてもらえれば盤面に埋め込んで再発行します。結果が動いたら、置き場のJSONを新しいものに差し替えるだけで全員に反映。</p>
+    </div>
+  </section>
+    <div>同点時の順位：1) 優勝国を保有 → 2) 決勝進出国の保有数 → 3) ボーナス点 → 4) じゃんけん</div>
+    <div style="margin-top:8px">
+      <button class="ghostbtn" id="shareNote">共有について</button>
+      <button class="ghostbtn" id="resetBtn">全データをリセット</button>
+    </div>
+    <div id="shareMsg" style="display:none;margin-top:8px;color:var(--mut)">更新はあなただけ。3人へは「公開リンク」を一度配り、結果を入れたら「共有」タブでコードを発行して送ります。3人はそのコードを貼るだけで最新の盤面が見られます（アカウント不要）。</div>
+  </footer>
+
+  <datalist id="teamlist"></datalist>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ===== 任意設定：ここに公開JSONのURLを入れると、開いた全員が自動で最新を取得します =====
+     例: var REMOTE_URL = "https://api.npoint.io/xxxxxxxx";  （空のままなら自動取得オフ） */
+  var REMOTE_URL = "wc.json";  // 同じリポジトリ内のデータファイルを読む
+  var runtimeUrl = "", remoteTimer = null, editMode = false;
+
+  /* ---------------- data ---------------- */
+  var ROUNDS = [
+    {k:'out',   label:'敗退',     pts:0},
+    {k:'r32',   label:'ベスト32', pts:1},
+    {k:'r16',   label:'ベスト16', pts:4},
+    {k:'r8',    label:'ベスト8',  pts:10},
+    {k:'r4',    label:'ベスト4',  pts:20},
+    {k:'runner',label:'準優勝',   pts:35},
+    {k:'champ', label:'優勝',     pts:60},
+  ];
+  var RPT = {}, RLABEL={}; ROUNDS.forEach(function(r){RPT[r.k]=r.pts;RLABEL[r.k]=r.label;});
+
+  var FLAG = {
+    'フランス':'🇫🇷','ベルギー':'🇧🇪','モロッコ':'🇲🇦','USA':'🇺🇸','コロンビア':'🇨🇴','南アフリカ':'🇿🇦',
+    'スペイン':'🇪🇸','ブラジル':'🇧🇷','オランダ':'🇳🇱','セネガル':'🇸🇳','トルコ':'🇹🇷','エクアドル':'🇪🇨',
+    'イングランド':'\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}','ドイツ':'🇩🇪','クロアチア':'🇭🇷','ウルグアイ':'🇺🇾','メキシコ':'🇲🇽','スウェーデン':'🇸🇪',
+    'ポルトガル':'🇵🇹','アルゼンチン':'🇦🇷','日本':'🇯🇵','ノルウェー':'🇳🇴','スイス':'🇨🇭','アルジェリア':'🇩🇿'
+  };
+
+  var XFLAG = {
+    '韓国':'🇰🇷','チェコ':'🇨🇿','カナダ':'🇨🇦','ボスニア・ヘルツェゴビナ':'🇧🇦','カタール':'🇶🇦','ハイチ':'🇭🇹',
+    'スコットランド':'\u{1F3F4}\u{E0067}\u{E0062}\u{E0073}\u{E0063}\u{E0074}\u{E007F}','パラグアイ':'🇵🇾','オーストラリア':'🇦🇺','キュラソー':'🇨🇼','コートジボワール':'🇨🇮',
+    'チュニジア':'🇹🇳','エジプト':'🇪🇬','イラン':'🇮🇷','ニュージーランド':'🇳🇿','カーボベルデ':'🇨🇻','サウジアラビア':'🇸🇦',
+    'イラク':'🇮🇶','オーストリア':'🇦🇹','ヨルダン':'🇯🇴','コンゴ民主共和国':'🇨🇩','ウズベキスタン':'🇺🇿','ガーナ':'🇬🇭','パナマ':'🇵🇦'
+  };
+  Object.keys(XFLAG).forEach(function(k){ if(!FLAG[k]) FLAG[k]=XFLAG[k]; });
+
+  var FCODE={
+    'メキシコ':'mx','南アフリカ':'za','韓国':'kr','チェコ':'cz',
+    'カナダ':'ca','ボスニア・ヘルツェゴビナ':'ba','カタール':'qa','スイス':'ch',
+    'ブラジル':'br','モロッコ':'ma','ハイチ':'ht','スコットランド':'gb-sct',
+    'USA':'us','パラグアイ':'py','オーストラリア':'au','トルコ':'tr',
+    'ドイツ':'de','キュラソー':'cw','コートジボワール':'ci','エクアドル':'ec',
+    'オランダ':'nl','日本':'jp','スウェーデン':'se','チュニジア':'tn',
+    'ベルギー':'be','エジプト':'eg','イラン':'ir','ニュージーランド':'nz',
+    'スペイン':'es','カーボベルデ':'cv','サウジアラビア':'sa','ウルグアイ':'uy',
+    'フランス':'fr','セネガル':'sn','イラク':'iq','ノルウェー':'no',
+    'アルゼンチン':'ar','アルジェリア':'dz','オーストリア':'at','ヨルダン':'jo',
+    'ポルトガル':'pt','コンゴ民主共和国':'cd','ウズベキスタン':'uz','コロンビア':'co',
+    'イングランド':'gb-eng','クロアチア':'hr','ガーナ':'gh','パナマ':'pa'
+  };
+  function flg(t){
+    var c=FCODE[t];
+    if(!c) return FLAG[t]||'';
+    return '<img class="fimg" src="https://flagcdn.com/40x30/'+c+'.png" width="20" height="15" alt="" onerror="this.outerHTML=\''+(FLAG[t]||'')+'\'">';
+  }
+
+  var GROUPS = {
+    'A':['メキシコ','南アフリカ','韓国','チェコ'],
+    'B':['カナダ','ボスニア・ヘルツェゴビナ','カタール','スイス'],
+    'C':['ブラジル','モロッコ','ハイチ','スコットランド'],
+    'D':['USA','パラグアイ','オーストラリア','トルコ'],
+    'E':['ドイツ','キュラソー','コートジボワール','エクアドル'],
+    'F':['オランダ','日本','スウェーデン','チュニジア'],
+    'G':['ベルギー','エジプト','イラン','ニュージーランド'],
+    'H':['スペイン','カーボベルデ','サウジアラビア','ウルグアイ'],
+    'I':['フランス','セネガル','イラク','ノルウェー'],
+    'J':['アルゼンチン','アルジェリア','オーストリア','ヨルダン'],
+    'K':['ポルトガル','コンゴ民主共和国','ウズベキスタン','コロンビア'],
+    'L':['イングランド','クロアチア','ガーナ','パナマ']
+  };
+  var MATCHES={
+    'A':[[0,1,'6/12(金) 4:00'],[2,3,'6/12(金) 11:00'],[3,1,'6/19(金) 1:00'],[0,2,'6/19(金) 10:00'],[3,0,'6/25(木) 10:00'],[1,2,'6/25(木) 10:00']],
+    'B':[[0,1,'6/13(土) 4:00'],[2,3,'6/14(日) 4:00'],[3,1,'6/19(金) 4:00'],[0,2,'6/19(金) 7:00'],[3,0,'6/25(木) 4:00'],[1,2,'6/25(木) 4:00']],
+    'C':[[0,1,'6/14(日) 7:00'],[2,3,'6/14(日) 10:00'],[3,1,'6/20(土) 7:00'],[0,2,'6/20(土) 9:30'],[3,0,'6/25(木) 7:00'],[1,2,'6/25(木) 7:00']],
+    'D':[[0,1,'6/13(土) 10:00'],[2,3,'6/14(日) 13:00'],[0,2,'6/20(土) 4:00'],[3,1,'6/20(土) 12:00'],[3,0,'6/26(金) 11:00'],[1,2,'6/26(金) 11:00']],
+    'E':[[0,1,'6/15(月) 2:00'],[2,3,'6/15(月) 8:00'],[0,2,'6/21(日) 5:00'],[3,1,'6/21(日) 12:00'],[3,0,'6/26(金) 5:00'],[1,2,'6/26(金) 5:00']],
+    'F':[[0,1,'6/15(月) 5:00'],[2,3,'6/15(月) 11:00'],[0,2,'6/21(日) 2:00'],[3,1,'6/21(日) 13:00'],[1,2,'6/26(金) 8:00'],[3,0,'6/26(金) 8:00']],
+    'G':[[0,1,'6/16(火) 4:00'],[2,3,'6/16(火) 10:00'],[0,2,'6/22(月) 4:00'],[3,1,'6/22(月) 10:00'],[1,2,'6/27(土) 12:00'],[3,0,'6/27(土) 12:00']],
+    'H':[[0,1,'6/16(火) 1:00'],[2,3,'6/16(火) 7:00'],[0,2,'6/22(月) 1:00'],[3,1,'6/22(月) 7:00'],[3,0,'6/27(土) 9:00'],[1,2,'6/27(土) 9:00']],
+    'I':[[0,1,'6/17(水) 4:00'],[2,3,'6/17(水) 7:00'],[0,2,'6/23(火) 6:00'],[3,1,'6/23(火) 9:00'],[3,0,'6/27(土) 4:00'],[1,2,'6/27(土) 4:00']],
+    'J':[[0,1,'6/17(水) 10:00'],[2,3,'6/17(水) 13:00'],[0,2,'6/23(火) 2:00'],[3,1,'6/23(火) 12:00'],[1,2,'6/28(日) 11:00'],[3,0,'6/28(日) 11:00']],
+    'K':[[0,1,'6/18(木) 2:00'],[2,3,'6/18(木) 11:00'],[0,2,'6/24(水) 2:00'],[3,1,'6/24(水) 11:00'],[3,0,'6/28(日) 8:30'],[1,2,'6/28(日) 8:30']],
+    'L':[[0,1,'6/18(木) 5:00'],[2,3,'6/18(木) 8:00'],[0,2,'6/24(水) 5:00'],[3,1,'6/24(水) 8:00'],[3,0,'6/28(日) 6:00'],[1,2,'6/28(日) 6:00']]
+  };
+  var TEAM_GROUP={}; Object.keys(GROUPS).forEach(function(g){GROUPS[g].forEach(function(t){TEAM_GROUP[t]=g;});});
+
+  var STAR = {
+    'フランス':'エムバペ','ベルギー':'デ・ブライネ','モロッコ':'ハキミ','USA':'プリシッチ','コロンビア':'ルイス・ディアス','南アフリカ':'フォスター',
+    'スペイン':'ヤマル','ブラジル':'ヴィニシウス','オランダ':'ファン・ダイク','セネガル':'マネ','トルコ':'ギュレル','エクアドル':'カイセド',
+    'イングランド':'ケイン','ドイツ':'ムシアラ','クロアチア':'モドリッチ','ウルグアイ':'バルベルデ','メキシコ':'S.ヒメネス','スウェーデン':'イサク',
+    'ポルトガル':'C.ロナウド','アルゼンチン':'メッシ','日本':'三笘 薫','ノルウェー':'ハーランド','スイス':'ジャカ','アルジェリア':'マフレズ'
+  };
+
+  var PLAYERS = [
+    {id:'A', badge:'竹', name:'竹田さん', color:'var(--A)', teams:['フランス','ベルギー','モロッコ','USA','コロンビア','南アフリカ']},
+    {id:'B', badge:'丸', name:'丸山くん', color:'var(--B)', teams:['スペイン','ブラジル','オランダ','セネガル','トルコ','エクアドル']},
+    {id:'C', badge:'白', name:'白井君',  color:'var(--C)', teams:['イングランド','ドイツ','クロアチア','ウルグアイ','メキシコ','スウェーデン']},
+    {id:'D', badge:'浜', name:'浜津君',  color:'var(--D)', teams:['ポルトガル','アルゼンチン','日本','ノルウェー','スイス','アルジェリア']},
+  ];
+  var byId={}; PLAYERS.forEach(function(p){byId[p.id]=p;});
+
+  var DEFAULT_PRED = {
+    A:{f1:'',f2:'',scorer:'',japan:'',nation:''},
+    B:{f1:'スペイン',f2:'ブラジル',scorer:'オヤルサバル',japan:'r32',nation:'フランス'},
+    C:{f1:'フランス',f2:'ポルトガル',scorer:'オリーセ',japan:'r8',nation:'フランス'},
+    D:{f1:'スペイン',f2:'フランス',scorer:'ハリー・ケイン',japan:'r16',nation:'スペイン'},
+  };
+
+  function freshState(){
+    var rounds={}; PLAYERS.forEach(function(p){p.teams.forEach(function(t){rounds[t]='out';});});
+    return {rounds:rounds, gm:{}, ko:{t32:[], sc:{}}, pred:JSON.parse(JSON.stringify(DEFAULT_PRED)),
+            actual:{f1:'',f2:'',scorer:'',nation:''}, v:0};
+  }
+  var state = freshState();
+
+  /* ---------------- storage (shared, graceful fallback) ---------------- */
+  var KEY='wc2026_draft_board', hasStore=!!(window.storage&&window.storage.get), loadedV=0, lastEdit=0;
+  function setSync(t,live){var d=document.getElementById('syncDot');d.className='dot'+(live?' live':'');document.getElementById('syncTxt').textContent=t;}
+  async function loadRemote(){
+    if(!hasStore){setSync('端末内のみ',false);return;}
+    try{ var r=await window.storage.get(KEY,true);
+      if(r&&r.value){ var s=JSON.parse(r.value); if((s.v||0)>=(state.v||0)){state=s;loadedV=s.v||0;} }
+      setSync('同期中',true);
+    }catch(e){ setSync('同期中',true); }
+  }
+  var saveT=null;
+  function save(){ state.v=Date.now(); lastEdit=state.v;
+    if(!hasStore) return;
+    clearTimeout(saveT);
+    saveT=setTimeout(async function(){ try{ await window.storage.set(KEY,JSON.stringify(state),true); loadedV=state.v; }catch(e){} },350);
+  }
+  async function poll(){
+    if(!hasStore) return;
+    if(Date.now()-lastEdit<3000) return;          // don't clobber fresh local edits
+    try{ var r=await window.storage.get(KEY,true);
+      if(r&&r.value){ var s=JSON.parse(r.value);
+        if((s.v||0)>loadedV){ state=s; loadedV=s.v||0; render(true); flashSync(); } }
+    }catch(e){}
+  }
+  function flashSync(){ var d=document.getElementById('syncDot'); d.style.transform='scale(1.6)'; setTimeout(function(){d.style.transform='';},250); }
+
+  /* ---------------- scoring ---------------- */
+  function norm(s){return (s||'').toString().trim().toLowerCase().replace(/\s+/g,'');}
+  function japanRoundKey(){ return state.rounds['日本']||'out'; }
+
+  function bonusFor(pid){
+    var pr=state.pred[pid]||{}, a=state.actual, d={card:0,scorer:0,japan:0,nation:0}, det={};
+    // final card
+    var predSet=[]; if(norm(pr.f1))predSet.push(norm(pr.f1)); if(norm(pr.f2)&&norm(pr.f2)!==norm(pr.f1))predSet.push(norm(pr.f2));
+    var actSet=[]; if(norm(a.f1))actSet.push(norm(a.f1)); if(norm(a.f2)&&norm(a.f2)!==norm(a.f1))actSet.push(norm(a.f2));
+    var hits=0; predSet.forEach(function(x){ if(actSet.indexOf(x)>=0)hits++; });
+    if(actSet.length){ d.card = hits>=2?12:(hits===1?4:0); }
+    det.card=hits;
+    // scorer
+    if(norm(pr.scorer)&&norm(a.scorer)){ if(norm(pr.scorer)===norm(a.scorer)) d.scorer=8; det.scorer=(d.scorer>0); } else det.scorer=null;
+    // japan
+    if(pr.japan){ d.japan = (pr.japan===japanRoundKey())?5:0; det.japan=(d.japan>0); } else det.japan=null;
+    // nation
+    if(norm(pr.nation)&&norm(a.nation)){ if(norm(pr.nation)===norm(a.nation)) d.nation=5; det.nation=(d.nation>0);} else det.nation=null;
+    var total=Math.min(30, d.card+d.scorer+d.japan+d.nation);
+    return {d:d, det:det, total:total};
+  }
+
+  function calcGroup(gk){
+    var st=GROUPS[gk].map(function(t,i){return {t:t,i:i,p:0,w:0,d:0,l:0,gf:0,ga:0};});
+    var gm=(state.gm&&state.gm[gk])||{};
+    (MATCHES[gk]||[]).forEach(function(pr){
+      var m=gm[pr[0]+'-'+pr[1]]; if(!m)return;
+      var a=st[pr[0]],b=st[pr[1]],h=+m[0],w=+m[1];
+      a.p++;b.p++;a.gf+=h;a.ga+=w;b.gf+=w;b.ga+=h;
+      if(h>w){a.w++;b.l++;}else if(h<w){b.w++;a.l++;}else{a.d++;b.d++;}
+    });
+    st.forEach(function(s){s.pts=3*s.w+s.d;s.gd=s.gf-s.ga;});
+    st.sort(function(x,y){return y.pts-x.pts||y.gd-x.gd||y.gf-x.gf;});
+    return st;
+  }
+  function gstatOf(t){
+    var gk=TEAM_GROUP[t]; if(!gk)return null;
+    var st=calcGroup(gk); for(var i=0;i<st.length;i++) if(st[i].t===t){st[i].pos=i+1;st[i].gk=gk;return st[i];}
+    return null;
+  }
+  function gpOf(t){ var s=gstatOf(t); return s?s.pts:0; }
+  function scoreAll(){
+    return PLAYERS.map(function(p){
+      var base=0, finalists=0, hasChamp=false, teaminfo=[];
+      p.teams.forEach(function(t){
+        var rk=state.rounds[t]||'out', pt=RPT[rk];
+        base+=pt; if(rk==='runner'||rk==='champ')finalists++; if(rk==='champ')hasChamp=true;
+        teaminfo.push({t:t,rk:rk,pt:pt});
+      });
+      var b=bonusFor(p.id);
+      var gp=0; p.teams.forEach(function(t){gp+=gpOf(t);});
+      return {p:p, base:base, bonus:b.total, bonusObj:b, total:base+b.total, gp:gp,
+              finalists:finalists, hasChamp:hasChamp, teaminfo:teaminfo};
+    });
+  }
+
+  function rank(rows){
+    var arr=rows.slice().sort(function(a,b){
+      if(b.total!==a.total)return b.total-a.total;
+      if(a.hasChamp!==b.hasChamp)return a.hasChamp?-1:1;
+      if(b.finalists!==a.finalists)return b.finalists-a.finalists;
+      if(b.bonus!==a.bonus)return b.bonus-a.bonus;
+      if((b.gp||0)!==(a.gp||0))return (b.gp||0)-(a.gp||0);
+      return 0;
+    });
+    arr.forEach(function(r,i){
+      if(i===0){r.rank=1;r.tie=false;return;}
+      var prev=arr[i-1], same=(r.total===prev.total&&r.hasChamp===prev.hasChamp&&r.finalists===prev.finalists&&r.bonus===prev.bonus);
+      r.rank=same?prev.rank:(i+1); r.tie=same; if(same)prev.tie=true;
+    });
+    return arr;
+  }
+
+  /* ---------------- render: leaderboard ---------------- */
+  var prevRank={}, prevTotal={}, board=document.getElementById('board'), champShownFor=null, prevLeader=null, builtRows=false;
+
+  function ensureRows(){
+    if(builtRows)return;
+    PLAYERS.forEach(function(p){
+      var el=document.createElement('div'); el.className='row'; el.id='row-'+p.id; el.style.setProperty('--pc',p.color);
+      el.innerHTML=
+        '<div class="rankwrap"><div class="rank"></div><div class="rankd"></div></div>'+
+        '<div class="who"><div class="name"><span class="cr"></span><span class="pid">'+p.badge+'</span><span class="nm">'+p.name+'</span></div><div class="teams"></div></div>'+
+        '<div class="scorewrap"><div class="total" data-v="0">0</div><div class="split"></div></div>'+
+        '<div class="bar"><i></i></div>';
+      board.appendChild(el);
+    });
+    builtRows=true;
+  }
+
+  function animNum(el,to){
+    var from=parseInt(el.getAttribute('data-v')||'0',10); if(from===to){el.firstChild&&(el.childNodes[0].nodeValue=to);return;}
+    el.setAttribute('data-v',to);
+    var t0=null,dur=600;
+    function step(ts){ if(!t0)t0=ts; var k=Math.min(1,(ts-t0)/dur); var val=Math.round(from+(to-from)*(1-Math.pow(1-k,3)));
+      el.childNodes[0].nodeValue=val; if(k<1)requestAnimationFrame(step); else el.childNodes[0].nodeValue=to; }
+    requestAnimationFrame(step);
+  }
+
+  function render(silent){
+    ensureRows();
+    var rows=scoreAll(), ranked=rank(rows);
+    var maxT=Math.max.apply(null, rows.map(function(r){return r.total;}));
+    var useGp=maxT<=0;
+    var maxV=Math.max(1, useGp?Math.max.apply(null,rows.map(function(r){return r.gp;})):maxT);
+    var started=rows.some(function(r){return r.teaminfo.some(function(x){return x.rk!=='out';});});
+    var anyScore=rows.some(function(r){return r.total>0||r.gp>0;});
+    document.getElementById('emptyHint').style.display=anyScore?'none':'';
+
+    // FLIP capture
+    var orderIds=ranked.map(function(r){return r.p.id;});
+    var first={}; orderIds.forEach(function(id){first[id]=document.getElementById('row-'+id).getBoundingClientRect();});
+
+    ranked.forEach(function(r){
+      var el=document.getElementById('row-'+r.p.id);
+      el.classList.toggle('leader', r.rank===1 && (r.total>0||r.gp>0));
+      el.querySelector('.rank').textContent=(r.total>0||r.gp>0)?r.rank:'–';
+      // rank delta
+      var rd=el.querySelector('.rankd'), pr=prevRank[r.p.id];
+      rd.className='rankd';
+      if(pr&&(r.total>0||r.gp>0)&&pr!==r.rank){ if(r.rank<pr){rd.textContent='▲'+(pr-r.rank);rd.classList.add('up');} else {rd.textContent='▼'+(r.rank-pr);rd.classList.add('down');} }
+      else rd.textContent='';
+      el.querySelector('.cr').innerHTML=(r.rank===1&&(r.total>0||r.gp>0))?'<span class="crown">👑</span>':'';
+      // total
+      var tot=el.querySelector('.total');
+      if(!tot.childNodes.length){tot.textContent=r.total;tot.setAttribute('data-v',r.total);}
+      animNum(tot,r.total);
+      if(!tot.querySelector('small')){var sm=document.createElement('small');sm.textContent='pt';tot.appendChild(sm);}
+      el.querySelector('.split').innerHTML='本線 <b>'+r.base+'</b> ＋ ボーナス <b>'+r.bonus+'</b>'+(r.gp>0?'　グループ勝点 <b>'+r.gp+'</b>':'')+(r.tie&&r.total>0?' · <span style="color:var(--gold)">同点</span>':'');
+      // chips: alive teams first
+      var ti=r.teaminfo.slice().sort(function(a,b){return (b.pt-a.pt)||(gpOf(b.t)-gpOf(a.t));});
+      el.querySelector('.teams').innerHTML=ti.map(function(x){
+        var alive=x.rk!=='out', cls=alive?'chip alive':(started?'chip gone':'chip');
+        var tag=x.rk==='champ'?'🏆':(x.rk==='runner'?'🥈':'');
+        var gpt=(!alive&&gpOf(x.t)>0)?'<span class="pt">勝点'+gpOf(x.t)+'</span>':'';
+        return '<span class="'+cls+'">'+flg(x.t)+' '+x.t+(alive?'<span class="pt">'+x.pt+'</span>':gpt)+(tag?(' '+tag):'')+'</span>';
+      }).join('');
+      el.querySelector('.bar > i').style.width=((useGp?r.gp:r.total)/maxV*100)+'%';
+      prevTotal[r.p.id]=r.total;
+    });
+
+    // reorder + FLIP
+    orderIds.forEach(function(id){board.appendChild(document.getElementById('row-'+id));});
+    if(!silent){
+      orderIds.forEach(function(id){
+        var el=document.getElementById('row-'+id), last=el.getBoundingClientRect(), dy=first[id].top-last.top;
+        if(dy){ el.style.transition='none'; el.style.transform='translateY('+dy+'px)';
+          requestAnimationFrame(function(){ el.style.transition='transform .6s cubic-bezier(.2,.8,.2,1)'; el.style.transform=''; }); }
+      });
+    }
+
+    // leader change confetti
+    var leader=ranked[0];
+    if(!silent && (leader.total>0||leader.gp>0) && prevLeader && prevLeader!==leader.p.id){
+      var lel=document.getElementById('row-'+leader.p.id).getBoundingClientRect();
+      confetti(lel.left+lel.width*0.5, lel.top+lel.height*0.5, getColor(leader.p.id), 60);
+    }
+    if(leader.total>0||leader.gp>0) prevLeader=leader.p.id;
+    ranked.forEach(function(r){prevRank[r.p.id]=r.rank;});
+
+    // champion banner
+    var champTeam=null, champOwner=null;
+    PLAYERS.forEach(function(p){p.teams.forEach(function(t){ if(state.rounds[t]==='champ'){champTeam=t;champOwner=p;} });});
+    var cb=document.getElementById('champBanner');
+    if(champTeam){ cb.classList.add('show');
+      document.getElementById('champText').innerHTML=flg(champTeam)+' '+champTeam+' ／ 保有：'+champOwner.name;
+      if(champShownFor!==champTeam && !silent){ champShownFor=champTeam; bigConfetti(); }
+    } else { cb.classList.remove('show'); champShownFor=null; }
+
+    renderRounds(); renderBonus(); renderGroups(); renderKO(); if(window.updateStrip)window.updateStrip();
+  }
+
+  function getColor(id){var m={A:'#ff5a5f',B:'#4d96ff',C:'#34d399',D:'#ffb020'};return m[id];}
+
+  /* ---------------- render: rounds input ---------------- */
+  var roundsBuilt=false;
+  function renderRounds(){
+    var host=document.getElementById('roundsHost');
+    if(!roundsBuilt){
+      host.innerHTML=PLAYERS.map(function(p){
+        var rows=p.teams.map(function(t){
+          var opts=ROUNDS.map(function(r){return '<option value="'+r.k+'">'+r.label+'</option>';}).join('');
+          var star=STAR[t]?'<span class="stx">⭐ '+STAR[t]+'</span>':'';
+          return '<div class="trow"><div class="tname"><span class="fl">'+flg(t)+'</span>'+
+                 '<div style="min-width:0"><span class="nm">'+t+'</span> <span class="e" data-e="'+t+'"></span>'+star+'</div></div>'+
+                 '<select data-team="'+t+'">'+opts+'</select></div>';
+        }).join('');
+        return '<div class="pgroup" style="--pc:'+p.color+'"><div class="phead"><span class="pid" style="background:'+p.color+'">'+p.badge+'</span>'+
+               '<span class="pn">'+p.name+'</span><span class="pt" data-pt="'+p.id+'"></span></div>'+rows+'</div>';
+      }).join('');
+      host.querySelectorAll('select[data-team]').forEach(function(sel){
+        sel.addEventListener('change',function(){ state.rounds[this.getAttribute('data-team')]=this.value; lastEdit=Date.now(); save(); render(); updateJapanAuto(); });
+      });
+      roundsBuilt=true;
+    }
+    // sync values + earned + group totals
+    PLAYERS.forEach(function(p){
+      var sum=0;
+      p.teams.forEach(function(t){
+        var rk=state.rounds[t]||'out';
+        var sel=host.querySelector('select[data-team="'+CSS.escape(t)+'"]'); if(sel){sel.value=rk;sel.classList.toggle('champ-sel',rk==='champ');}
+        var e=host.querySelector('[data-e="'+CSS.escape(t)+'"]'); if(e)e.textContent=RPT[rk]>0?('+'+RPT[rk]):'';
+        sum+=RPT[rk];
+      });
+      var pt=host.querySelector('[data-pt="'+p.id+'"]'); if(pt)pt.textContent=sum+' pt';
+    });
+  }
+
+  /* ---------------- render: bonus ---------------- */
+  var bonusBuilt=false;
+  function renderBonus(){
+    var host=document.getElementById('bonusHost');
+    var jround=ROUNDS.map(function(r){return '<option value="'+r.k+'">'+r.label+'</option>';}).join('');
+    if(!bonusBuilt){
+      host.innerHTML=PLAYERS.map(function(p){
+        return '<div class="pred" style="--pc:'+p.color+'"><div class="ph"><span class="pid" style="background:'+p.color+'">'+p.badge+'</span>'+
+          '<span class="pn" style="font-weight:800;font-size:14px">'+p.name+'</span><span class="bt" data-bt="'+p.id+'"></span></div>'+
+          '<div class="pbody">'+
+            '<div class="pline"><span class="k">決勝カード</span><span class="v"><div class="twoin">'+
+              '<input type="text" list="teamlist" data-p="'+p.id+'" data-f="f1" placeholder="チーム1"><input type="text" list="teamlist" data-p="'+p.id+'" data-f="f2" placeholder="チーム2"></div></span>'+
+              '<span class="pts"><span class="mk" data-mk="'+p.id+'-card"></span><span data-pv="'+p.id+'-card"></span></span></div>'+
+            '<div class="pline"><span class="k">得点王</span><span class="v"><input type="text" data-p="'+p.id+'" data-f="scorer" placeholder="選手名" style="width:100%"></span>'+
+              '<span class="pts"><span class="mk" data-mk="'+p.id+'-scorer"></span><span data-pv="'+p.id+'-scorer"></span></span></div>'+
+            '<div class="pline"><span class="k">日本の到達R</span><span class="v"><select data-p="'+p.id+'" data-f="japan"><option value="">未入力</option>'+jround+'</select></span>'+
+              '<span class="pts"><span class="mk" data-mk="'+p.id+'-japan"></span><span data-pv="'+p.id+'-japan"></span></span></div>'+
+            '<div class="pline"><span class="k">最多得点国</span><span class="v"><input type="text" list="teamlist" data-p="'+p.id+'" data-f="nation" placeholder="国名" style="width:100%"></span>'+
+              '<span class="pts"><span class="mk" data-mk="'+p.id+'-nation"></span><span data-pv="'+p.id+'-nation"></span></span></div>'+
+          '</div></div>';
+      }).join('');
+      host.querySelectorAll('[data-p][data-f]').forEach(function(inp){
+        inp.addEventListener('input',function(){ state.pred[this.getAttribute('data-p')][this.getAttribute('data-f')]=this.value; lastEdit=Date.now(); save(); softRefresh(); });
+        inp.addEventListener('change',function(){ state.pred[this.getAttribute('data-p')][this.getAttribute('data-f')]=this.value; lastEdit=Date.now(); save(); softRefresh(); });
+      });
+      // actual inputs
+      [['aF1','f1'],['aF2','f2'],['aScorer','scorer'],['aNation','nation']].forEach(function(x){
+        var el=document.getElementById(x[0]);
+        el.addEventListener('input',function(){ state.actual[x[1]]=this.value; lastEdit=Date.now(); save(); softRefresh(); });
+      });
+      bonusBuilt=true;
+    }
+    // sync values
+    PLAYERS.forEach(function(p){
+      var pr=state.pred[p.id]||{};
+      ['f1','f2','scorer','japan','nation'].forEach(function(f){
+        var el=host.querySelector('[data-p="'+p.id+'"][data-f="'+f+'"]'); if(el&&document.activeElement!==el)el.value=pr[f]||'';
+      });
+      var b=bonusFor(p.id);
+      host.querySelector('[data-bt="'+p.id+'"]').textContent=b.total+' pt';
+      setMk(host,p.id+'-card',b.det.card>0,b.d.card);
+      setMk(host,p.id+'-scorer',b.det.scorer,b.d.scorer);
+      setMk(host,p.id+'-japan',b.det.japan,b.d.japan);
+      setMk(host,p.id+'-nation',b.det.nation,b.d.nation);
+    });
+    var aa=state.actual;
+    if(document.activeElement!==document.getElementById('aF1'))document.getElementById('aF1').value=aa.f1||'';
+    if(document.activeElement!==document.getElementById('aF2'))document.getElementById('aF2').value=aa.f2||'';
+    if(document.activeElement!==document.getElementById('aScorer'))document.getElementById('aScorer').value=aa.scorer||'';
+    if(document.activeElement!==document.getElementById('aNation'))document.getElementById('aNation').value=aa.nation||'';
+    updateJapanAuto();
+  }
+  function setMk(host,key,state3,pts){
+    var mk=host.querySelector('[data-mk="'+key+'"]'), pv=host.querySelector('[data-pv="'+key+'"]');
+    if(state3===null||state3===undefined){mk.textContent='';mk.className='mk';pv.textContent='';return;}
+    if(state3){mk.textContent='✓ ';mk.className='mk ok';pv.textContent=pts;} else {mk.textContent='✗ ';mk.className='mk no';pv.textContent='0';}
+  }
+  function updateJapanAuto(){
+    var jr=japanRoundKey(); document.getElementById('japanAuto').innerHTML=flg('日本')+' '+RLABEL[jr]+'（勝ち上がり入力と自動連動）';
+  }
+  // refresh only score-dependent bits without FLIP churn
+  function softRefresh(){ render(true); }
+
+  /* ---------------- confetti ---------------- */
+  var cv=document.getElementById('cf'), cx=cv.getContext('2d'), parts=[], raf=null;
+  function fit(){cv.width=innerWidth;cv.height=innerHeight;} fit(); addEventListener('resize',fit);
+  function confetti(x,y,color,n){
+    if(matchMedia('(prefers-reduced-motion:reduce)').matches)return;
+    var cols=[color,'#ffffff','#ffd24a']; for(var i=0;i<(n||40);i++){
+      var a=Math.random()*Math.PI*2, sp=4+Math.random()*7;
+      parts.push({x:x,y:y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-4,g:.18+Math.random()*.12,
+        s:4+Math.random()*5,c:cols[i%cols.length],life:60+Math.random()*30,rot:Math.random()*6,vr:(Math.random()-.5)*.4});
+    }
+    if(!raf)tick();
+  }
+  function bigConfetti(){ var y=innerHeight*0.28; confetti(innerWidth*0.5,y,'#ffd24a',140); setTimeout(function(){confetti(innerWidth*0.25,y,'#4d96ff',70);confetti(innerWidth*0.75,y,'#ff5a5f',70);},180); }
+  function tick(){
+    cx.clearRect(0,0,cv.width,cv.height);
+    parts=parts.filter(function(p){return p.life>0&&p.y<cv.height+40;});
+    parts.forEach(function(p){ p.vy+=p.g;p.x+=p.vx;p.y+=p.vy;p.life--;p.rot+=p.vr;
+      cx.save();cx.translate(p.x,p.y);cx.rotate(p.rot);cx.fillStyle=p.c;cx.globalAlpha=Math.max(0,Math.min(1,p.life/30));
+      cx.fillRect(-p.s/2,-p.s/2,p.s,p.s*0.6);cx.restore(); });
+    if(parts.length)raf=requestAnimationFrame(tick); else {raf=null;cx.clearRect(0,0,cv.width,cv.height);}
+  }
+
+  /* ---------------- tabs & misc ---------------- */
+  document.querySelectorAll('.tab').forEach(function(t){
+    t.addEventListener('click',function(){
+      document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('on');});
+      document.querySelectorAll('.panel').forEach(function(x){x.classList.remove('on');});
+      t.classList.add('on'); document.getElementById('panel-'+t.getAttribute('data-tab')).classList.add('on');
+    });
+  });
+  // datalist
+  var dl=document.getElementById('teamlist'); var allTeams=[]; PLAYERS.forEach(function(p){allTeams=allTeams.concat(p.teams);});
+  dl.innerHTML=allTeams.map(function(t){return '<option value="'+t+'">';}).join('');
+
+  document.getElementById('refreshBtn').addEventListener('click',async function(){ if(!editMode)lastEdit=0; await loadRemote(); await fetchRemote(false); render(true); flashSync(); });
+  document.getElementById('shareNote').addEventListener('click',function(){var m=document.getElementById('shareMsg');m.style.display=m.style.display==='none'?'block':'none';});
+  document.getElementById('resetBtn').addEventListener('click',function(){
+    if(!confirm('全データ（勝ち上がり・実際の結果）をリセットします。予想は初期値に戻ります。よろしいですか？'))return;
+    state=freshState(); roundsBuilt=false; bonusBuilt=false; document.getElementById('roundsHost').innerHTML=''; document.getElementById('bonusHost').innerHTML='';
+    prevRank={};prevLeader=null;champShownFor=null; lastEdit=Date.now(); save(); render();
+  });
+
+  /* ---------------- share code (works for non-Claude viewers) ---------------- */
+  var RCODE={out:'0',r32:'1',r16:'2',r8:'3',r4:'4',runner:'5',champ:'6'};
+  var RDEC={'0':'out','1':'r32','2':'r16','3':'r8','4':'r4','5':'runner','6':'champ'};
+  function b64e(s){return btoa(unescape(encodeURIComponent(s)));}
+  function b64d(s){return decodeURIComponent(escape(atob(s)));}
+  function encodeState(){
+    var r=allTeams.map(function(t){return RCODE[state.rounds[t]||'out'];}).join('');
+    return 'WC1'+b64e(JSON.stringify({r:r,a:state.actual,p:state.pred,gm:state.gm||{},ko:state.ko||{t32:[],sc:{}}}));
+  }
+  function decodeState(code){
+    code=(code||'').trim().replace(/\s+/g,''); if(code.indexOf('WC1')===0)code=code.slice(3);
+    var o=JSON.parse(b64d(code)), rounds={};
+    for(var i=0;i<allTeams.length;i++){ rounds[allTeams[i]]=RDEC[(o.r||'')[i]]||'out'; }
+    return {rounds:rounds, actual:o.a||{f1:'',f2:'',scorer:'',nation:''}, pred:o.p||state.pred, gm:o.gm||{}, ko:o.ko||null};
+  }
+  function setStat(id,t,cls){var el=document.getElementById(id);el.className='fetchstat'+(cls?(' '+cls):'');el.textContent=t;}
+
+  document.getElementById('genCodeBtn').addEventListener('click',function(){
+    var c=encodeState(); var ta=document.getElementById('shareCode'); ta.value=c; ta.focus(); ta.select();
+    setStat('codeGenStat','発行しました（'+c.length+'文字）','ok');
+  });
+  document.getElementById('copyCodeBtn').addEventListener('click',function(){
+    var ta=document.getElementById('shareCode'); if(!ta.value){ta.value=encodeState();}
+    var done=function(){setStat('codeGenStat','コピーしました','ok');};
+    if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(ta.value).then(done,function(){ta.select();document.execCommand('copy');done();}); }
+    else { ta.select(); document.execCommand('copy'); done(); }
+  });
+  document.getElementById('loadCodeBtn').addEventListener('click',function(){
+    var code=document.getElementById('codeIn').value;
+    if(!code.trim()){ setStat('codeLoadStat','コードを貼り付けてください','err'); return; }
+    try{
+      var s=decodeState(code);
+      state.rounds=s.rounds; state.actual=s.actual; state.pred=s.pred; state.gm=s.gm||state.gm; if(s.ko)state.ko=s.ko; state.v=Date.now();
+      lastEdit=Date.now(); save(); render();
+      setStat('codeLoadStat','最新の盤面を表示中','ok');
+    }catch(e){ console.error(e); setStat('codeLoadStat','コードを読み取れませんでした。全文を貼り付けたか確認を。','err'); }
+  });
+
+  /* ---------- group tables ---------- */
+  function renderGroups(){
+    var host=document.getElementById('groupsHost'); if(!host)return;
+    if(document.activeElement&&document.activeElement.classList&&document.activeElement.classList.contains('gsc'))return;
+    var OWNER={}; PLAYERS.forEach(function(p){p.teams.forEach(function(t){OWNER[t]=p;});});
+    var html='';
+    Object.keys(GROUPS).forEach(function(gk){
+      var st=calcGroup(gk), gm=(state.gm&&state.gm[gk])||{};
+      html+='<div class="gcard"><div class="ghead">グループ '+gk+'</div>';
+      html+='<table class="gtab"><tr><th></th><th>チーム</th><th>試</th><th>勝分負</th><th>得失</th><th>点</th></tr>';
+      st.forEach(function(s,idx){
+        var own=OWNER[s.t];
+        var cls=idx<2?'q12':(idx===2?'q3':'');
+        var star=(own&&STAR[s.t])?'<span class="stx">⭐ '+STAR[s.t]+'</span>':'';
+        var badge=own?'<span class="own" style="background:'+own.color+'">'+own.badge+'</span>':'';
+        html+='<tr class="'+cls+'"><td><span class="ps">'+(idx+1)+'</span></td>'+
+          '<td class="tm">'+flg(s.t)+' '+s.t+badge+star+'</td>'+
+          '<td>'+s.p+'</td><td>'+s.w+'-'+s.d+'-'+s.l+'</td>'+
+          '<td>'+(s.gd>0?'+':'')+s.gd+'</td><td class="pts">'+s.pts+'</td></tr>';
+      });
+      html+='</table><div class="gmt">';
+      (MATCHES[gk]||[]).forEach(function(pr){
+        var key=pr[0]+'-'+pr[1], m=gm[key];
+        var th=GROUPS[gk][pr[0]], ta=GROUPS[gk][pr[1]];
+        var mid;
+        if(editMode){
+          mid='<span class="sc"><input type="number" class="gsc" min="0" max="99" data-gk="'+gk+'" data-mk="'+key+'" data-side="0" value="'+(m?m[0]:'')+'"> - <input type="number" class="gsc" min="0" max="99" data-gk="'+gk+'" data-mk="'+key+'" data-side="1" value="'+(m?m[1]:'')+'"></span>';
+        } else {
+          mid=m?'<span class="sc">'+m[0]+' - '+m[1]+'</span>':'<span class="sc na">–</span>';
+        }
+        html+='<div class="gtime">🕘 '+pr[2]+'</div><div class="gmr"><span class="h">'+th+' '+flg(th)+'</span>'+mid+'<span class="a">'+flg(ta)+' '+ta+'</span></div>';
+      });
+      html+='</div></div>';
+    });
+    host.innerHTML=html;
+    host.querySelectorAll('input.gsc').forEach(function(inp){
+      inp.addEventListener('change',function(){
+        var gk=this.getAttribute('data-gk'), mk=this.getAttribute('data-mk');
+        var pair=host.querySelectorAll('input.gsc[data-gk="'+gk+'"][data-mk="'+mk+'"]');
+        var h=pair[0].value, a=pair[1].value;
+        if(!state.gm)state.gm={}; if(!state.gm[gk])state.gm[gk]={};
+        if(h===''||a===''){ delete state.gm[gk][mk]; }
+        else { state.gm[gk][mk]=[Math.max(0,parseInt(h,10)||0), Math.max(0,parseInt(a,10)||0)]; }
+        lastEdit=Date.now(); save(); render();
+      });
+    });
+  }
+
+  /* ---------- knockout bracket ---------- */
+  var KO_ROUNDS=[['r32',16,'ベスト32'],['r16',8,'ベスト16'],['qf',4,'ベスト8'],['sf',2,'準決勝'],['fin',1,'決勝']];
+  function koTeams(rk,idx){
+    var ko=state.ko||{t32:[],sc:{}};
+    if(rk==='r32') return [ko.t32[idx*2]||'', ko.t32[idx*2+1]||''];
+    var prev={r16:'r32',qf:'r16',sf:'qf',fin:'sf'}[rk];
+    return [koWinner(prev,idx*2), koWinner(prev,idx*2+1)];
+  }
+  function koWinner(rk,idx){
+    var t=koTeams(rk,idx), sc=(state.ko&&state.ko.sc&&state.ko.sc[rk+'-'+idx])||null;
+    if(!t[0]||!t[1]||!sc||sc[0]==null||sc[1]==null||sc[0]===''||sc[1]==='') return '';
+    var h=+sc[0], a=+sc[1];
+    if(h>a) return t[0]; if(a>h) return t[1];
+    if(sc[2]===0) return t[0]; if(sc[2]===1) return t[1];
+    return '';
+  }
+  function renderKO(){
+    var host=document.getElementById('koHost'); if(!host)return;
+    var ae=document.activeElement;
+    if(ae&&ae.classList&&(ae.classList.contains('koi')||ae.classList.contains('kosel')||ae.classList.contains('kopksel')))return;
+    var OWNER={}; PLAYERS.forEach(function(p){p.teams.forEach(function(t){OWNER[t]=p;});});
+    var selOpts='<option value="">— チーム —</option>';
+    Object.keys(GROUPS).forEach(function(gk){
+      selOpts+='<optgroup label="グループ'+gk+'">'+GROUPS[gk].map(function(t){return '<option value="'+t+'">'+t+'</option>';}).join('')+'</optgroup>';
+    });
+    function rowHtml(rk,idx,side,team,sc){
+      var win=koWinner(rk,idx), isW=win&&team&&win===team;
+      var own=team?OWNER[team]:null;
+      var badge=own?'<span class="own" style="background:'+own.color+'">'+own.badge+'</span>':'';
+      var name;
+      if(editMode&&rk==='r32'){
+        name='<select class="kosel" data-slot="'+(idx*2+side)+'">'+selOpts.replace('value="'+team+'"','value="'+team+'" selected')+'</select>';
+      } else {
+        name='<span class="knm">'+(team?(flg(team)+' '+team):'<span style="color:var(--mut2)">—</span>')+'</span>'+badge;
+      }
+      var scv=sc&&sc[side]!=null&&sc[side]!==''?sc[side]:'';
+      var score=editMode?'<input type="number" class="koi" min="0" max="99" data-ko="'+rk+'-'+idx+'" data-side="'+side+'" value="'+scv+'">':'<span class="ksc">'+(scv===''?'·':scv)+'</span>';
+      return '<div class="kor'+(isW?' kw':'')+'">'+name+score+'</div>';
+    }
+    var html='<div class="kowrap"><div class="kocols">';
+    KO_ROUNDS.forEach(function(R){
+      var rk=R[0], n=R[1], label=R[2];
+      html+='<div class="kocol"><div class="kohead">'+label+'</div>';
+      for(var i=0;i<n;i++){
+        var t=koTeams(rk,i), sc=(state.ko&&state.ko.sc&&state.ko.sc[rk+'-'+i])||null;
+        html+='<div class="kom">'+rowHtml(rk,i,0,t[0],sc)+rowHtml(rk,i,1,t[1],sc);
+        var tie=sc&&sc[0]!==''&&sc[1]!==''&&sc[0]!=null&&sc[1]!=null&&+sc[0]===+sc[1]&&t[0]&&t[1];
+        if(tie){
+          if(editMode){
+            html+='<div class="kopk">PK勝者: <select class="kopksel" data-ko="'+rk+'-'+i+'"><option value="">未定</option><option value="0"'+(sc[2]===0?' selected':'')+'>'+t[0]+'</option><option value="1"'+(sc[2]===1?' selected':'')+'>'+t[1]+'</option></select></div>';
+          } else if(sc[2]===0||sc[2]===1){
+            html+='<div class="kopk">PK: '+(sc[2]===0?t[0]:t[1])+' 勝利</div>';
+          } else {
+            html+='<div class="kopk">PK勝者 未入力</div>';
+          }
+        }
+        html+='</div>';
+      }
+      html+='</div>';
+    });
+    var champ=koWinner('fin',0);
+    html+='<div class="kocol" style="width:150px"><div class="kohead">優勝</div><div class="kochamp"><div style="font-size:26px">🏆</div><div class="kc1">CHAMPION</div><div class="kc2">'+(champ?(flg(champ)+' '+champ):'—')+'</div></div></div>';
+    html+='</div></div>';
+    host.innerHTML=html;
+    var ka=document.getElementById('koApply'); if(ka)ka.style.display=editMode?'':'none';
+    host.querySelectorAll('select.kosel').forEach(function(sel){
+      sel.addEventListener('change',function(){
+        if(!state.ko)state.ko={t32:[],sc:{}};
+        state.ko.t32[+this.getAttribute('data-slot')]=this.value;
+        lastEdit=Date.now(); save(); render();
+      });
+    });
+    host.querySelectorAll('input.koi').forEach(function(inp){
+      inp.addEventListener('change',function(){
+        var key=this.getAttribute('data-ko'), side=+this.getAttribute('data-side');
+        if(!state.ko)state.ko={t32:[],sc:{}}; if(!state.ko.sc)state.ko.sc={};
+        var sc=state.ko.sc[key]||['','',null];
+        sc[side]=this.value===''?'':Math.max(0,parseInt(this.value,10)||0);
+        if(sc[0]===''&&sc[1]==='') delete state.ko.sc[key]; else state.ko.sc[key]=sc;
+        lastEdit=Date.now(); save(); render();
+      });
+    });
+    host.querySelectorAll('select.kopksel').forEach(function(sel){
+      sel.addEventListener('change',function(){
+        var key=this.getAttribute('data-ko');
+        var sc=state.ko.sc[key]; if(!sc)return;
+        sc[2]=this.value===''?null:+this.value;
+        lastEdit=Date.now(); save(); render();
+      });
+    });
+  }
+  (function(){
+    var ka=document.getElementById('koApply');
+    if(ka) ka.addEventListener('click',function(){
+      var reach={};
+      (state.ko&&state.ko.t32||[]).forEach(function(t){ if(t)reach[t]='r32'; });
+      [['r16','r16'],['qf','r8'],['sf','r4'],['fin','runner']].forEach(function(m){
+        var n={r16:8,qf:4,sf:2,fin:1}[m[0]];
+        for(var i=0;i<n;i++){ koTeams(m[0],i).forEach(function(t){ if(t)reach[t]=m[1]; }); }
+      });
+      var champ=koWinner('fin',0); if(champ)reach[champ]='champ';
+      var changes=[];
+      allTeams.forEach(function(t){ if(reach[t]&&state.rounds[t]!==reach[t])changes.push(t+'→'+RLABEL[reach[t]]); });
+      if(!changes.length){ alert('反映できる変更はありません（トーナメントに保有チームの結果がまだ無いか、既に一致しています）。'); return; }
+      if(!confirm('勝ち上がりを更新します：\n'+changes.join('、')+'\nよろしいですか？'))return;
+      allTeams.forEach(function(t){ if(reach[t])state.rounds[t]=reach[t]; });
+      lastEdit=Date.now(); save(); render();
+    });
+  })();
+
+  /* ---------- remote JSON (auto-display for anyone, no account) ---------- */
+  function normalizeUrl(u){
+    if(!u) return u; u=u.trim();
+    // Gistのraw（ハッシュ入り）→ ハッシュなし（常に最新）に自動変換
+    var m=u.match(/^(https:\/\/gist\.githubusercontent\.com\/[^\/]+\/[^\/]+\/raw)\/[0-9a-fA-F]{20,}\/(.+)$/);
+    if(m) return m[1]+'/'+m[2];
+    return u;
+  }
+  function remoteJson(){
+    var r=allTeams.map(function(t){return RCODE[state.rounds[t]||'out'];}).join('');
+    var mi=document.getElementById('tickerMsg'); var msg=mi?mi.value.trim():(state.msg||''); state.msg=msg;
+    return JSON.stringify({r:r,a:state.actual,p:state.pred,m:msg,t:Date.now(),gm:state.gm||{},ko:state.ko||{t32:[],sc:{}}});
+  }
+  function applyCompact(o,initial){
+    if(!initial && (editMode || Date.now()-lastEdit<5000)) return; // 編集中・直近編集は上書きしない
+    var before={}; if(!initial){ scoreAll().forEach(function(x){before[x.p.id]=x.total;}); }
+    if(o && typeof o.r==='string'){ var rounds={}; for(var i=0;i<allTeams.length;i++) rounds[allTeams[i]]=RDEC[o.r[i]]||'out'; state.rounds=rounds; }
+    if(o && o.a) state.actual=o.a;
+    if(o && o.p) state.pred=o.p;
+    if(o && o.gm) state.gm=o.gm;
+    if(o && o.ko) state.ko=o.ko;
+    state.msg=(o&&o.m)||''; state.t=(o&&o.t)||0;
+    state.v=Date.now(); render(initial?true:false); updateTicker();
+    if(!initial){ scoreAll().forEach(function(x){ var d=x.total-(before[x.p.id]||0); if(d>0) floatGain(x.p.id,d); }); }
+  }
+  function floatGain(pid,d){
+    var row=document.getElementById('row-'+pid); if(!row) return;
+    var s=document.createElement('span'); s.className='gainf'; s.textContent='+'+d;
+    row.appendChild(s); setTimeout(function(){ s.remove(); },1700);
+  }
+  function ago(t){ if(!t) return ''; var m=Math.round((Date.now()-t)/60000);
+    if(m<1) return 'たった今'; if(m<60) return m+'分前'; var h=Math.round(m/60); if(h<24) return h+'時間前'; return Math.round(h/24)+'日前'; }
+  function updateTicker(){
+    var tk=document.getElementById('ticker'); if(!tk) return;
+    var has=!!(state.msg&&state.msg.trim());
+    tk.style.display=(has||state.t)?'flex':'none';
+    document.getElementById('tickerText').textContent=has?state.msg:'スコア更新';
+    document.getElementById('tickerTime').textContent=state.t?(ago(state.t)+' 更新'):'';
+    var mi=document.getElementById('tickerMsg'); if(mi&&document.activeElement!==mi) mi.value=state.msg||'';
+  }
+  window.updateStrip=function(){
+    var st=document.getElementById('topStrip'); if(!st) return;
+    var order=['r32','r16','r8','r4','runner','champ'], frontier=-1;
+    allTeams.forEach(function(t){ var i=order.indexOf(state.rounds[t]||'out'); if(i>frontier)frontier=i; });
+    var names={r32:'ベスト32',r16:'ベスト16',r8:'ベスト8',r4:'ベスト4',runner:'決勝',champ:'大会終了'};
+    var phase=frontier<0?'グループステージ':names[order[frontier]];
+    var jp=state.rounds['日本']||'out';
+    var jtxt=jp!=='out'?RLABEL[jp]:(frontier>=0?'敗退':'これから');
+    st.innerHTML='<span class="chipx">🏁 '+phase+'</span><span class="chipx">'+flg('日本')+' 日本: '+jtxt+'</span>'+(state.t?('<span class="chipx">🕐 '+ago(state.t)+' 更新</span>'):'');
+  };
+  async function fetchRemote(initial){
+    var url=normalizeUrl(runtimeUrl||REMOTE_URL); if(!url) return;
+    try{
+      var bust=url+(url.indexOf('?')>=0?'&':'?')+'_t='+Date.now(); // CDNキャッシュ回避（GitHub raw等）
+      var res=await fetch(bust,{cache:'no-store'});
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      var o=await res.json();
+      applyCompact(o,initial);
+      setStat('remoteStat','リンクを開くと自動で最新を表示します','ok');
+    }catch(e){ console.error(e); setStat('remoteStat','取得失敗：URLとCORS（外部からの読み取り許可）を確認','err'); }
+  }
+  function startRemote(){
+    var url=normalizeUrl(runtimeUrl||REMOTE_URL); if(!url) return;
+    fetchRemote(true);
+    if(remoteTimer) clearInterval(remoteTimer);
+    remoteTimer=setInterval(function(){ fetchRemote(false); }, 20000);
+  }
+  document.getElementById('applyRemoteBtn').addEventListener('click',function(){
+    runtimeUrl=normalizeUrl(document.getElementById('remoteUrl').value.trim());
+    if(!runtimeUrl){ setStat('remoteStat','URLを入力してください','err'); return; }
+    document.getElementById('remoteUrl').value=runtimeUrl; // 整えたURLを表示
+    startRemote();
+  });
+  document.getElementById('copyJsonBtn').addEventListener('click',function(){
+    var j=remoteJson();
+    var done=function(){ setStat('remoteStat','置き場用JSONをコピーしました','ok'); };
+    if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(j).then(done,done); }
+    else { var t=document.getElementById('codeIn'); t.value=j; t.select(); document.execCommand('copy'); done(); }
+  });
+  if(REMOTE_URL) document.getElementById('remoteUrl').value=REMOTE_URL;
+
+  // 編集モード・更新バー
+  (function(){
+    var tg=document.getElementById('editToggle'), hint=document.getElementById('editHint');
+    if(tg){ tg.addEventListener('change',function(){
+      editMode=tg.checked; hint.style.display=editMode?'block':'none';
+      renderGroups(); renderKO();
+      if(!editMode){ lastEdit=0; fetchRemote(true); } // OFFでGistから再取得
+    }); }
+    var cj=document.getElementById('copyOpenGist');
+    if(cj){ cj.addEventListener('click',function(){
+      var j=remoteJson();
+      if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(j).then(function(){cj.textContent='コピーしました → Gistへ';setTimeout(function(){cj.textContent='JSONをコピーしてGistを開く';},2500);},function(){}); }
+      else { var t=document.getElementById('codeIn'); if(t){t.value=j;t.select();document.execCommand('copy');} }
+    }); }
+  })();
+
+  /* ---------------- boot ---------------- */
+  (async function(){
+    await loadRemote();
+    render(true);
+    setInterval(poll, 8000);
+    if(REMOTE_URL) startRemote();
+  })();
+
+})();
+</script>
